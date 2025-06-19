@@ -11,19 +11,25 @@ async function handler(req: Request): Promise<Response> {
     });
   }
 
-  // 去掉路径前导斜杠并分割出主机部分，例如：/github.com/login → host = github.com, path = /login
-  const pathParts = pathname.slice(1).split("/");
-  const host = pathParts[0];
-  const subpath = "/" + pathParts.slice(1).join("/");
+  let targetUrlString = "";
 
-  if (!host || !subpath) {
-    return new Response("Invalid path. Usage: /<host>/<path>", {
-      status: 400,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+  if (pathname.startsWith("/http:/") || pathname.startsWith("/https:/")) {
+    targetUrlString = decodeURIComponent(pathname.slice(1));
+  } else {
+    const pathParts = pathname.slice(1).split("/");
+    const host = pathParts[0];
+    const subpath = "/" + pathParts.slice(1).join("/");
+
+    if (!host || !subpath) {
+      return new Response("Invalid path. Usage: /<host>/<path> or /https://...", {
+        status: 400,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
+
+    targetUrlString = `https://${host}${subpath}`;
   }
 
-  const targetUrlString = `https://${host}${subpath}`;
   console.log(`Proxying request to: ${targetUrlString}`);
 
   try {
